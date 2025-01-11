@@ -1,13 +1,18 @@
-# ESP32-Audioworks
+# ESP32-SpectrumAnalyzer
 
 Using Analog Input on the ESP32 to figure out whats going on in the surrounding
+
+Specs:
+|capture speed [sps]|sample lenght|bitrate|
+|--------|--------|--------|
+|441000|441|12|  
 
 ## Loop
 
 This records a small wave sample and plays it back
 
 Playback in the browser:
-* Audio file (mp3?)
+* Audio file (sound.mp3)
 * Visualisation (brightness box)
 
 Using an appropriate output device:
@@ -17,6 +22,7 @@ Using an appropriate output device:
 ## Analyze 
 
 Do some analysis of the sample
+Frequnecy range: 1 Hz .. 44.1 kHz
 
 ### Get dominant frequency
 
