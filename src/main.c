@@ -31,17 +31,38 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_FAIL_BIT BIT1
 
 static int retry_count = 0;
+static bool adc_fft_running = false; // Flag to control FFT process
 
 // FFT buffers
 __attribute__((aligned(16))) float adc_buffer[BUFFER_SIZE]; // ADC data
 __attribute__((aligned(16))) float wind[BUFFER_SIZE];       // Hann window coefficients
 __attribute__((aligned(16))) float y_cf[BUFFER_SIZE * 2];   // Complex buffer for FFT
-float *y1_cf = &y_cf[0];
 
 // HTTP Server Handlers
 static esp_err_t root_handler(httpd_req_t *req) {
-    const char *response = "ESP32 Web Server Running!";
-    httpd_resp_send(req, response, strlen(response));
+    char response[1024];
+    snprintf(response, sizeof(response),
+             "<html>"
+             "<head><title>ESP32 ADC & FFT</title></head>"
+             "<body>"
+             "<h1>ESP32 ADC & FFT</h1>"
+             "<p>ADC and FFT Status: <b>%s</b></p>"
+             "<form action=\"/start\" method=\"post\">"
+             "<button type=\"submit\">Start ADC and FFT</button>"
+             "</form>"
+             "</body>"
+             "</html>",
+             adc_fft_running ? "Running" : "Stopped");
+
+    httpd_resp_send(req, response, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+static esp_err_t start_adc_fft_handler(httpd_req_t *req) {
+    adc_fft_running = true; // Enable ADC and FFT process
+    httpd_resp_set_status(req, "303 See Other");
+    httpd_resp_set_hdr(req, "Location", "/");
+    httpd_resp_send(req, NULL, 0);
     return ESP_OK;
 }
 
@@ -56,7 +77,14 @@ static httpd_handle_t start_webserver(void) {
             .handler = root_handler,
             .user_ctx = NULL
         };
+        httpd_uri_t start = {
+            .uri = "/start",
+            .method = HTTP_POST,
+            .handler = start_adc_fft_handler,
+            .user_ctx = NULL
+        };
         httpd_register_uri_handler(server, &root);
+        httpd_register_uri_handler(server, &start);
     }
     return server;
 }
@@ -132,37 +160,47 @@ void adc_fft_task(void *arg) {
     dsps_fft2r_init_fc32(NULL, CONFIG_DSP_MAX_FFT_SIZE);
     dsps_wind_hann_f32(wind, BUFFER_SIZE);
 
-    vTaskDelay(pdMS_TO_TICKS(10000)); // Wait 10 seconds before starting FFT
-
     while (1) {
+        if (!adc_fft_running) {
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep if not running
+            continue;
+        }
+
         ESP_LOGI(TAG, "Starte ADC-Abtastung...");
         for (int i = 0; i < BUFFER_SIZE; i++) {
             adc_buffer[i] = (float)adc1_get_raw(ADC_CHANNEL);
             esp_rom_delay_us(1000000 / SAMPLE_RATE);
-
-            if (i % 100 == 0) {
-                vTaskDelay(pdMS_TO_TICKS(1)); // Allow other tasks
-            }
         }
 
         ESP_LOGI(TAG, "ADC-Abtastung abgeschlossen. Starte FFT-Analyse...");
 
-        // Apply Hann window and convert to complex values
+        float max_magnitude = 0.0;
+        int max_index = 0;
+
         for (int i = 0; i < BUFFER_SIZE; i++) {
-            y_cf[i * 2] = adc_buffer[i] * wind[i]; // Real part
-            y_cf[i * 2 + 1] = 0;                  // Imaginary part
+            y_cf[i * 2] = adc_buffer[i] * wind[i];
+            y_cf[i * 2 + 1] = 0;
         }
 
-        // Perform FFT
-        unsigned int start_b = dsp_get_cpu_cycle_count();
         dsps_fft2r_fc32(y_cf, BUFFER_SIZE);
         dsps_bit_rev_fc32(y_cf, BUFFER_SIZE);
         dsps_cplx2reC_fc32(y_cf, BUFFER_SIZE);
-        unsigned int end_b = dsp_get_cpu_cycle_count();
 
-        ESP_LOGI(TAG, "FFT abgeschlossen. Verarbeitungszeit: %u Zyklen", end_b - start_b);
+        for (int i = 0; i < BUFFER_SIZE / 2; i++) {
+            float real = y_cf[i * 2];
+            float imag = y_cf[i * 2 + 1];
+            float magnitude = sqrtf(real * real + imag * imag);
 
-        vTaskDelay(pdMS_TO_TICKS(2000)); // Run every 2 seconds
+            if (magnitude > max_magnitude) {
+                max_magnitude = magnitude;
+                max_index = i;
+            }
+        }
+
+        float main_frequency = max_index * (float)SAMPLE_RATE / (float)BUFFER_SIZE;
+        ESP_LOGI(TAG, "Main Frequency: %.2f Hz, Magnitude: %.2f", main_frequency, max_magnitude);
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -180,8 +218,8 @@ void app_main() {
     connect_wifi();
 
     ESP_LOGI(TAG, "Starting HTTP server...");
-    start_webserver();
+    xTaskCreatePinnedToCore((TaskFunction_t)start_webserver, "web_server_task", 8192, NULL, 5, NULL, 0);
 
-    ESP_LOGI(TAG, "Starte ADC- und FFT-Task...");
-    xTaskCreate(adc_fft_task, "adc_fft_task", 8192, NULL, 5, NULL);
+    ESP_LOGI(TAG, "Starting ADC and FFT task...");
+    xTaskCreatePinnedToCore(adc_fft_task, "adc_fft_task", 8192, NULL, 5, NULL, 1);
 }
