@@ -1,11 +1,18 @@
 # ESP32-SpectrumAnalyzer
 
-Using Analog Input on the ESP32 to figure out whats going on in the surrounding
+Using the analog input on a ESP32 to figure out whats going on in the surrounding
 
-Specs:
-|capture speed [sps]|sample lenght|bitrate|
+Steps are:
+* Internet connection over wifi
+* Continuos high-speed data aquisition
+* Fast Fourier Transformation
+* FFT baseline difference detection
+* Send frequency data to a server for visualisation
+
+Signal spec:
+|capture speed [sps]|buffer size [bit]|resolution [bit]|
 |--------|--------|--------|
-|441000|441|12|  
+|441000|1024|12|  
 
 ## Loop
 
