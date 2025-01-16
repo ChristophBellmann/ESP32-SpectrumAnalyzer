@@ -47,6 +47,12 @@ short period analysis
 
 Long period analysis, over the last 50 samples
 
+- when the main frequency does not change, but other freuqeuncys start apperaring
+  - emerging higher frequencies could mean something is sliding or started to get loose
+  - emerging lower frequencies could mean the motor is running lumpy, bearing failure imminent?
+
+---
+
 # Structure/ Project Overview
 
 ## Files
@@ -100,8 +106,3 @@ Long period analysis, over the last 50 samples
 3. **WAV Generation and Download:**  
    - When the user clicks the download button, `wav_download_handler()` is called.
    - This function saves the ADC data in buffers, creates a WAV file, and sends it as a download to the client.
-
-
-- when the main frequency does not change, but other freuqeuncys start apperaring
-  - emerging higher frequencies could eman something is sliding
-  - emerging lower frequencies could mean the motor is running lumpy, bearing failure imminent?
