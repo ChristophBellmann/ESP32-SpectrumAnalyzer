@@ -8,17 +8,14 @@
 #include "esp_adc/adc_continuous.h"
 #include "esp_http_server.h"
 #include "config.h"
-#include "adc_fft.h"
+#include "adc_fft.h" // Use extern declarations
 #include "wav.h"
 
 static const char *TAG = "WAV";
 
-#define NUM_BUFFERS 50
 #define HEADER_SIZE 44
-static int16_t collected_data[NUM_BUFFERS][FFT_SIZE];
-static SemaphoreHandle_t adc_semaphore = NULL;
 
-// Funktion zum Erstellen des WAV-Headers
+// Function to create WAV header
 void generate_wav_header(uint8_t *header, uint32_t data_size) {
     uint32_t sample_rate = SAMPLE_RATE;
     uint16_t bits_per_sample = 16;
@@ -41,71 +38,37 @@ void generate_wav_header(uint8_t *header, uint32_t data_size) {
     *((uint32_t *)(header + 40)) = data_size;            // Subchunk2Size
 }
 
-// Funktion zur Speicherung von 50 Buffers
-void save_adc_data() {
-    ESP_LOGI(TAG, "Saving %d ADC buffers...", NUM_BUFFERS);
-
-    if (adc_semaphore == NULL) {
-        adc_semaphore = xSemaphoreCreateBinary();
-        if (adc_semaphore == NULL) {
-            ESP_LOGE(TAG, "Failed to create ADC semaphore");
-            return;
-        }
-    }
-
-    xSemaphoreTake(adc_semaphore, portMAX_DELAY);
-
-    size_t bytes_read = 0;
-    for (int i = 0; i < NUM_BUFFERS; i++) {
-        ESP_ERROR_CHECK(adc_continuous_read(adc_handle, (uint8_t *)collected_data[i], sizeof(collected_data[i]), &bytes_read, portMAX_DELAY));
-        if (bytes_read > 0) {
-            ESP_LOGI(TAG, "Buffer %d/%d saved", i + 1, NUM_BUFFERS);
-        } else {
-            ESP_LOGE(TAG, "Failed to read ADC data for buffer %d", i + 1);
-        }
-    }
-
-    xSemaphoreGive(adc_semaphore);
-
-    ESP_LOGI(TAG, "All %d ADC buffers saved successfully.", NUM_BUFFERS);
-}
-
-// HTTP-Handler für den Download-Button
 esp_err_t wav_download_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "Download request received. Generating WAV file...");
+    ESP_LOGI(TAG, "Playback/Download request received. Generating new WAV file...");
 
-    // ADC-Speicherung starten
+    // Collect new ADC data
     save_adc_data();
 
-    // WAV-Header erstellen
+    // Prepare WAV file
     uint32_t data_size = NUM_BUFFERS * FFT_SIZE * sizeof(int16_t);
     uint8_t wav_header[HEADER_SIZE];
     generate_wav_header(wav_header, data_size);
 
-    // Gesamte WAV-Daten zusammenstellen
-    size_t wav_size = HEADER_SIZE + data_size;
-    uint8_t *wav_data = (uint8_t *)malloc(wav_size);
-    if (wav_data == NULL) {
-        ESP_LOGE(TAG, "Failed to allocate memory for WAV data");
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to allocate memory for WAV file");
-        return ESP_FAIL;
-    }
-
-    memcpy(wav_data, wav_header, HEADER_SIZE);
-    memcpy(wav_data + HEADER_SIZE, collected_data, data_size);
-
-    // WAV-Daten senden
+    // Stream the WAV header
     httpd_resp_set_type(req, "audio/wav");
-    httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=adc_data.wav");
-    esp_err_t res = httpd_resp_send(req, (const char *)wav_data, wav_size);
-
-    free(wav_data);
-
-    if (res == ESP_OK) {
-        ESP_LOGI(TAG, "WAV data sent to client.");
-    } else {
-        ESP_LOGE(TAG, "Failed to send WAV data.");
+    httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=adc_data.wav");
+    esp_err_t res = httpd_resp_send_chunk(req, (const char *)wav_header, HEADER_SIZE);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send WAV header");
+        return res;
     }
 
-    return res;
+    // Stream ADC data buffer-by-buffer
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        res = httpd_resp_send_chunk(req, (const char *)collected_data[i], FFT_SIZE * sizeof(int16_t));
+        if (res != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send buffer %d", i);
+            return res;
+        }
+    }
+
+    // End the HTTP chunked response
+    return httpd_resp_send_chunk(req, NULL, 0);
 }
+
+

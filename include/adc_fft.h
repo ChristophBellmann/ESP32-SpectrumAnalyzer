@@ -5,18 +5,26 @@
 #include "freertos/task.h"
 #include "driver/adc.h"
 #include "esp_adc/adc_continuous.h"
+#include "config.h" // Include config for NUM_BUFFERS and FFT_SIZE
 
-// ADC-Handle extern deklarieren
+// ADC handle for continuous reading
 extern adc_continuous_handle_t adc_handle;
 
-// Globale Variablen für Hauptfrequenz und Magnitude
-extern float main_frequency; // Hauptfrequenz
-extern float max_magnitude;  // Magnitude
+// Global variables for main frequency and magnitude
+extern float main_frequency;
+extern float max_magnitude;
 
-// Initialisiert den ADC im kontinuierlichen Modus
+// Shared ring buffer and current buffer index
+extern int16_t collected_data[NUM_BUFFERS][FFT_SIZE];
+extern int current_buffer_index; // Current buffer index in the ring buffer
+
+// Initializes the ADC in continuous mode
 void configure_adc_continuous();
 
-// Startet den Task, der ADC-Daten liest und FFT berechnet
+// Starts the task for reading ADC data and performing FFT
 void collect_adc_continuous_data();
+
+// Saves data to the shared ring buffer
+void save_adc_data(); // Add this function declaration
 
 #endif // ADC_FFT_H

@@ -66,18 +66,23 @@ void wifi_init_sta() {
     }
 }
 
-// HTTP GET Handler for Main Frequency
 esp_err_t main_frequency_handler(httpd_req_t *req) {
-    char response[256];
-    snprintf(response, sizeof(response), 
-             "<html><body><h1>Main Frequency: %.2f Hz</h1>"
+    char response[1024];
+    snprintf(response, sizeof(response),
+             "<html>"
+             "<body>"
+             "<h1>Main Frequency: %.2f Hz</h1>"
              "<h2>Magnitude: %.2f</h2>"
-             "<button onclick=\"window.location.href='/download'\">Download WAV</button>"
-             "</body></html>", 
-             main_frequency, max_magnitude);
-    httpd_resp_send(req, response, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
+             "<audio controls src='/download?timestamp=%lu'></audio>"
+             "<br>"
+             "<button onclick=\"window.location.href='/download?timestamp=%lu'\">Download WAV</button>"
+             "</body>"
+             "</html>",
+             main_frequency, max_magnitude, esp_log_timestamp(), esp_log_timestamp());
+
+    return httpd_resp_send(req, response, HTTPD_RESP_USE_STRLEN);
 }
+
 
 // Start Webserver
 httpd_handle_t start_webserver() {
