@@ -3,23 +3,47 @@
 #include "wav.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "fastdetect.h"
+#include "spiffs_init.h"
 
-static const char *TAG = "FreeRAM";
+static const char *TAG = "MainApp";
 
-// Task to monitor and log the free RAM periodically
 void monitor_free_ram_task(void *param) {
     while (1) {
         ESP_LOGI(TAG, "Free heap size: %u bytes", (unsigned int)esp_get_free_heap_size());
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Log every 1 second
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-void app_main() {
+static void test_dummy_task(void *param)
+{
+    while (1) {
+        store_frequency(123.45f);
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+
+void app_main()
+{
+    esp_log_level_set("httpd_ws", ESP_LOG_DEBUG);
+    esp_log_level_set("httpd_txrx", ESP_LOG_DEBUG);
+
+    // Mount SPIFFS
+    init_spiffs();
+
+    // 1) Wi-Fi init
     wifi_init_sta();
+
+    // 2) ADC / FFT init
     configure_adc_continuous();
-    start_webserver();
     xTaskCreate(collect_adc_continuous_data, "ADC_Task", 4096, NULL, 5, NULL);
 
-    // Create a task to monitor free RAM
-    xTaskCreate(monitor_free_ram_task, "Monitor_FreeRAM_Task", 2048, NULL, 1, NULL);
+    // 3) Start the web server
+    start_webserver();
+
+    // 4) Start the fast-detect chunk task
+    init_fastdetect_task();
+
+    // Optionally monitor free RAM
+    // xTaskCreate(monitor_free_ram_task, "monitor_free_ram_task", 2048, NULL, 5, NULL);
 }

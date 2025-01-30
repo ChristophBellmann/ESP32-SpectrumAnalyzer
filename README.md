@@ -106,3 +106,96 @@ Long period analysis, over the last 50 samples
 3. **WAV Generation and Download:**  
    - When the user clicks the download button, `wav_download_handler()` is called.
    - This function saves the ADC data in buffers, creates a WAV file, and sends it as a download to the client.
+
+  # **Calculations for Time per Bar in Frequency Trend Chart**
+
+# Calculations for Time per Bar in Frequency Trend Chart
+
+## 1. Understanding the Backend Configuration
+
+### a. Sampling Rate (`SAMPLE_RATE`)
+The sampling rate determines how many samples are captured per second. As defined in `config.h` and utilized in `adc_fft.c`:
+\[
+\text{SAMPLE\_RATE} = 8000 \, \text{Hz}
+\]
+
+### b. FFT Size (`FFT_SIZE`)
+The number of samples processed in each Fast Fourier Transform (FFT) operation, defined in `config.h` and used in both `adc_fft.c` and `fastdetect.c`:
+\[
+\text{FFT\_SIZE} = 1024
+\]
+
+### c. Time per FFT Operation (`T_{\text{FFT}}`)
+Each FFT processes a block of samples. The time duration each FFT represents is calculated as:
+\[
+T_{\text{FFT}} = \frac{\text{FFT\_SIZE}}{\text{SAMPLE\_RATE}} = \frac{1024}{8000} = 0.128 \, \text{seconds} = 128 \, \text{ms}
+\]
+
+## 2. Frequency Measurements Collection
+
+### a. Frequency Measurements per Chunk
+In `fastdetect.c`, each chunk aggregates up to 4 frequency measurements. This is evident from the loop:
+`for (int i = 0; i < 4; i++) { float f = get_recent_freq(i); /* ... */ }`
+\[
+\text{Measurements per Chunk} = 4
+\]
+
+### b. Time per Chunk (`T_{\text{Chunk}}`)
+Each chunk aggregates 4 FFT-based frequency measurements. Therefore, the time each chunk represents is:
+\[
+T_{\text{Chunk}} = \text{Measurements per Chunk} \times T_{\text{FFT}} = 4 \times 128 \, \text{ms} = 512 \, \text{ms}
+\]
+
+## 3. Number of Chunks (`NUM_CHUNKS`)
+The total number of chunks determines how many bars are displayed on the frontend, as defined in `fastdetect.c`:
+\[
+\text{NUM\_CHUNKS} = 40
+\]
+
+## 4. Time per Bar (`T_{\text{Bar}}`)
+Each bar in the trend chart represents one chunk. Therefore, the time each bar represents is:
+\[
+T_{\text{Bar}} = T_{\text{Chunk}} = 512 \, \text{ms}
+\]
+
+## 5. Total Time Displayed on Chart (`T_{\text{Total}}`)
+The total duration represented by all bars in the trend chart is:
+\[
+T_{\text{Total}} = \text{NUM\_CHUNKS} \times T_{\text{Bar}} = 40 \times 512 \, \text{ms} = 20,480 \, \text{ms} \approx 20.48 \, \text{seconds}
+\]
+
+## 6. Time per Step (`T_{\text{Step}}`)
+Given that each step aggregates 4 bars, the time each step represents is:
+\[
+T_{\text{Step}} = \text{Bars per Step} \times T_{\text{Bar}} = 4 \times 512 \, \text{ms} = 2,048 \, \text{ms} \approx 2.048 \, \text{seconds}
+\]
+
+## 7. Summary of Calculations
+
+| Parameter               | Symbol                  | Value                |
+|-------------------------|-------------------------|----------------------|
+| Sampling Rate           | \(\text{SAMPLE\_RATE}\) | \(8000 \, \text{Hz}\)|
+| FFT Size                | \(\text{FFT\_SIZE}\)    | \(1024\)             |
+| Time per FFT            | \(T_{\text{FFT}}\)      | \(128 \, \text{ms}\) |
+| Measurements per Chunk  | \(\text{M}_{\text{chunk}}\) | \(4\)               |
+| Time per Chunk          | \(T_{\text{Chunk}}\)    | \(512 \, \text{ms}\) |
+| Number of Chunks        | \(\text{NUM\_CHUNKS}\)  | \(40\)               |
+| Time per Bar            | \(T_{\text{Bar}}\)      | \(512 \, \text{ms}\) |
+| Total Time on Chart     | \(T_{\text{Total}}\)    | \(20.48 \, \text{seconds}\) |
+| Bars per Step           | \(\text{BARS\_PER\_STEP}\) | \(4\)               |
+| Time per Step           | \(T_{\text{Step}}\)     | \(2.048 \, \text{seconds}\) |
+
+## 8. Visual Representation on Frontend
+
+- **X-Axis Labels:** Displayed every 4 bars, representing \(2.048 \, \text{seconds}\).
+- **Legend:** Indicates that each bar represents \(512 \, \text{ms}\).
+
+## 9. Alignment with Frontend Configuration
+
+Ensure that the frontend (`fastdetect.html`) reflects these calculations accurately:
+
+- **Constants in Frontend JavaScript:**
+  ```javascript
+  const NUM_CHUNKS = 40; // Must match backend NUM_CHUNKS
+  const TIME_PER_BAR_MS = 512; // Calculated as 4 * 128ms
+  const BARS_PER_STEP = 4; // Display time every 4 bars

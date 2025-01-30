@@ -9,6 +9,7 @@
 #include "esp_dsp.h"
 #include "config.h"
 #include "freertos/semphr.h" // Ensure this include exists
+#include "fastdetect.h"
 
 extern int16_t collected_data[NUM_BUFFERS][FFT_SIZE];
 extern int current_buffer_index;
@@ -57,7 +58,10 @@ void configure_adc_continuous() {
 }
 
 void perform_fft() {
-    ESP_LOGI(TAG, "Performing FFT...");
+
+    #if ENABLE_ADC_FFT_LOGS
+        ESP_LOGI(TAG, "Performing FFT...");
+    #endif
 
     // Calculate mean for DC removal
     float mean = 0.0f;
@@ -107,7 +111,12 @@ void perform_fft() {
     }
 
     main_frequency = (float)max_index * SAMPLE_RATE / FFT_SIZE;
-    ESP_LOGI(TAG, "Main Frequency: %.2f Hz, Magnitude: %.2f", main_frequency, max_magnitude);
+
+    #if ENABLE_ADC_FFT_LOGS
+        ESP_LOGI(TAG, "Main Frequency: %.2f Hz, Magnitude: %.2f", main_frequency, max_magnitude);
+    #endif
+
+    store_frequency(main_frequency);
 }
 
 void collect_adc_continuous_data() {
@@ -119,7 +128,9 @@ void collect_adc_continuous_data() {
     while (1) {
         ESP_ERROR_CHECK(adc_continuous_read(adc_handle, (uint8_t *)adc_buffer, sizeof(adc_buffer), (uint32_t *)&bytes_read, portMAX_DELAY));
         if (bytes_read > 0) {
-            ESP_LOGI(TAG, "Collected %d bytes of ADC data", bytes_read);
+            #if ENABLE_ADC_FFT_LOGS
+                ESP_LOGI(TAG, "Collected %d bytes of ADC data", bytes_read);
+            #endif
 
             // Store data in the ring buffer
             memcpy(collected_data[current_buffer_index], adc_buffer, sizeof(adc_buffer));
