@@ -16,9 +16,11 @@ Signal spec:
 
 ## Interfaces
 
-!(Index with WAV Play&Download)[pics/Bildschirmfoto_ESP32-Index.png]
-!(Visualisation of History Trends)[pics/Bildschirmfoto_ESP32-Trends.png]
-!(Visualisation on a RPM meter)[pics/Bildschirmfoto_ESP32-Monitor.png]
+!(Index with WAV Play&Download)[pics/Bildschirmfoto_ESP32-Index.png]  
+
+!(Visualisation of History Trends)[pics/Bildschirmfoto_ESP32-Trends.png]  
+
+!(Visualisation on a RPM meter)[pics/Bildschirmfoto_ESP32-Monitor.png]  
 
 ## Loop
 
