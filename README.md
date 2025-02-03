@@ -28,7 +28,7 @@ This records a small wave sample and plays it back
 
 Playback in the browser:
 * Audio WAV file
-*  
+  
 ## FFT Analyzation
 
 Do some analysis of the sample
