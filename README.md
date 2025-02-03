@@ -29,10 +29,14 @@ This records a small wave sample and plays it back
 Playback in the browser:
 * Audio WAV file
   
-## FFT Analyzation
+## FFT Analisation
 
 Do some analysis of the sample
 Frequnecy range: 1 Hz .. 44.1 kHz
+
+[See here:](test/(audioanalyse.ipynb)  
+
+[and here:](test/(fft.ipynb)  
 
 ### Get main frequency
 
@@ -40,6 +44,7 @@ Frequnecy range: 1 Hz .. 44.1 kHz
 - Output the frequency in Hz
 
 ### Detect change in Frequency
+
 short period analysis
 
 ### Transmit over WebSocket
