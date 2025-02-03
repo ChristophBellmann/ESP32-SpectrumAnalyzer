@@ -14,6 +14,12 @@ Signal spec:
 |--------|--------|--------|
 |441000|1024|12|  
 
+## Interfaces
+
+!(Index with WAV Play&Download)[pics/Bildschirmfoto_ESP32-Index.png]
+!(Visualisation of History Trends)[pics/Bildschirmfoto_ESP32-Trends.png]
+!(Visualisation on a RPM meter)[pics/Bildschirmfoto_ESP32-Monitor.png]
+
 ## Loop
 
 This records a small wave sample and plays it back
