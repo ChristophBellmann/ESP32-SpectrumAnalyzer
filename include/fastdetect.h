@@ -8,14 +8,20 @@
 extern "C" {
 #endif
 
+// Speichert eine Frequenzmessung im ringförmigen Puffer.
 void store_frequency(float freq);
+
+// Initialisiert die Fastdetect-Task.
 void init_fastdetect_task(void);
 
-// HTML handler for /fastdetect
+// HTTP-Handler für /fastdetect.
 esp_err_t fastdetect_handler(httpd_req_t *req);
 
-// The WebSocket handler is declared here if you like:
+// WebSocket-Handler für Fastdetect-Daten.
 esp_err_t ws_handler(httpd_req_t *req);
+
+// Deklaration für build_chunk_json, damit diese Funktion in anderen Modulen (z. B. http.c) bekannt ist.
+void build_chunk_json(char *outbuf, size_t outsize);
 
 #ifdef __cplusplus
 }

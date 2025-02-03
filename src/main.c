@@ -15,14 +15,6 @@ void monitor_free_ram_task(void *param) {
     }
 }
 
-static void test_dummy_task(void *param)
-{
-    while (1) {
-        store_frequency(123.45f);
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-}
-
 void app_main()
 {
     esp_log_level_set("httpd_ws", ESP_LOG_DEBUG);
