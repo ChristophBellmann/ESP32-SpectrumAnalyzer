@@ -1,13 +1,10 @@
 
-This is for tests and things figuring out if it works.
+Jupyter notebook files for tests and things figuring out if it works.  
 
-Anythign taht helps in the testing cycle.
+Audio analysis that helps in the testing cycle.  
 
+
+Run a test tone: 
 ```
 play -n synth sin 1000
 ```
-
-
-There is also a way to try jupyter notebooks:
-- https://jupyter.org/try-jupyter/lab/
-
