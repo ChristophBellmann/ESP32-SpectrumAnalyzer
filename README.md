@@ -27,8 +27,8 @@ Signal spec:
 This records a small wave sample and plays it back
 
 Playback in the browser:
-* Audio file (sound.mp3)
-
+* Audio WAV file
+*  
 ## FFT Analyzation
 
 Do some analysis of the sample
@@ -41,6 +41,10 @@ Frequnecy range: 1 Hz .. 44.1 kHz
 
 ### Detect change in Frequency
 short period analysis
+
+### Transmit over WebSocket
+
+Update the webpage with the Data feed from the FFT Analysis
 
 - save the frequency of each of the last samples
 - tendency of speeding up/ down
