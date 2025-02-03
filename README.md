@@ -34,9 +34,7 @@ Playback in the browser:
 Do some analysis of the sample
 Frequnecy range: 1 Hz .. 44.1 kHz
 
-[See here:](test/(audioanalyse.ipynb)  
-
-[and here:](test/(fft.ipynb)  
+[See here:](test/)  
 
 ### Get main frequency
 
